@@ -15,7 +15,7 @@ class Scanner {
   private int current = 0; // Current character of the lexeme being considered
   private int line = 1;
 
-  Scanner(String scanner) {
+  Scanner(String source) {
     this.source = source;
   }
 
