@@ -15,7 +15,31 @@ class Scanner {
   private int current = 0; // Current character of the lexeme being considered
   private int line = 1;
 
-  Scanner(String source) {
+  private boolean blockCommentStarted = false;
+
+  private static final Map<String, TokenType> keywords;
+
+  static {
+    keywords = new HashMap<>();
+    keywords.put("and", AND);
+    keywords.put("class", CLASS);
+    keywords.put("else", ELSE);
+    keywords.put("false", FALSE);
+    keywords.put("for", FOR);
+    keywords.put("fun", FUN);
+    keywords.put("if", IF);
+    keywords.put("nil", NIL);
+    keywords.put("or", OR);
+    keywords.put("print", PRINT);
+    keywords.put("return", RETURN);
+    keywords.put("super", SUPER);
+    keywords.put("this", THIS);
+    keywords.put("true", TRUE);
+    keywords.put("var", VAR);
+    keywords.put("while", WHILE);
+  }
+
+  public Scanner(String source) {
     this.source = source;
   }
 
@@ -64,7 +88,14 @@ class Scanner {
         addToken(SEMICOLON);
         break;
       case '*':
-        addToken(STAR);
+        if (peek() == '/' && blockCommentStarted) {
+          blockCommentStarted = false;
+          // Ignore for the block comment terminator '*/'
+          advance();
+          break;
+        } else {
+          addToken(STAR);
+        }
         break;
       // Division or Comments?
       case '/':
@@ -72,6 +103,11 @@ class Scanner {
           // A comments goes till the end of the line.
           while (peek() != '\n' && !isAtEnd())
             advance(); // Ignore contents.
+        } else if (match('*')) {
+          // Try to implement Challenge 4 from Chapter 4:
+          blockCommentStarted = true;
+          while (peek() != '*' && peekNext() != '/' && !isAtEnd())
+            advance();
         } else {
           addToken(SLASH);
         }
@@ -108,6 +144,8 @@ class Scanner {
       default:
         if (isDigit(c)) {
           number();
+        } else if (isAlpha(c)) {
+          identifier();
         } else {
           // Here to report any invalid character the scanner finds
           // instead of just discarding it and moving on:
@@ -115,6 +153,18 @@ class Scanner {
         }
         break;
     }
+  }
+
+  // To detect user created identifiers or keywords:
+  private void identifier() {
+    while (isAlphaNumeric(peek()))
+      advance();
+
+    String text = source.substring(start, current);
+    TokenType type = keywords.get(text);
+    if (type == null)
+      type = IDENTIFIER;
+    addToken(type);
   }
 
   // Literal detection:
@@ -180,6 +230,14 @@ class Scanner {
     if (current + 1 >= source.length())
       return '\0';
     return source.charAt(current + 1);
+  }
+
+  private boolean isAlpha(char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+  }
+
+  private boolean isAlphaNumeric(char c) {
+    return isAlpha(c) || isDigit(c);
   }
 
   private boolean isDigit(char c) {
