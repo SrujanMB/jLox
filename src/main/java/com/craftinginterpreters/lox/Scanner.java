@@ -15,8 +15,6 @@ class Scanner {
   private int current = 0; // Current character of the lexeme being considered
   private int line = 1;
 
-  private boolean blockCommentStarted = false;
-
   private static final Map<String, TokenType> keywords;
 
   static {
@@ -88,14 +86,7 @@ class Scanner {
         addToken(SEMICOLON);
         break;
       case '*':
-        if (peek() == '/' && blockCommentStarted) {
-          blockCommentStarted = false;
-          // Ignore for the block comment terminator '*/'
-          advance();
-          break;
-        } else {
-          addToken(STAR);
-        }
+        addToken(STAR);
         break;
       // Division or Comments?
       case '/':
@@ -105,9 +96,19 @@ class Scanner {
             advance(); // Ignore contents.
         } else if (match('*')) {
           // Try to implement Challenge 4 from Chapter 4:
-          blockCommentStarted = true;
-          while (peek() != '*' && peekNext() != '/' && !isAtEnd())
+          while (!isAtEnd()) {
+            if (peek() == '*' && peekNext() == '/') {
+              advance();
+              advance();
+              break;
+            }
+
+            // Try to still keep count of lines passed
+            if (peek() == '\n')
+              line++;
+
             advance();
+          }
         } else {
           addToken(SLASH);
         }
